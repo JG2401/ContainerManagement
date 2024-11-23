@@ -8,6 +8,7 @@ It has the base features of Bitwarden and also some free features that you have 
 ## Prerequisites
 
 - [Portainer](https://www.portainer.io/)
+- [Macvlan](/Macvlan/README.md) (optional)
 
 ## Installation Guide
 
@@ -21,8 +22,8 @@ services:
     container_name: Vaultwarden
     restart: unless-stopped
     ports:
-      - #35556:3012
-      - #35554:80
+      - #3012:3012
+      - #80:80
     volumes:
       - #/volume1/docker/vaultwarden/data:/data:rw
     environment:
@@ -36,6 +37,14 @@ services:
       DEBIAN_FRONTEND: noninteractive
       SIGNUPS_ALLOWED: true
       WEBSOCKET_ENABLED: true
+    networks:
+      default:
+        ipv4_address: 192.168.xxx.xxx
+
+networks:
+  default:
+    name: #macvlan
+    external: true
 ```
 
 After successful execution of the docker-compose file you have to [create a new account](#create-a-new-account).
@@ -50,3 +59,59 @@ To create a new account you have to call your defined ipv4_address via web-brows
 ## Disable SIGNUPS_ALLOWED
 
 Stop the container and change the `SIGNUPS_ALLOWED` to `false` in the container settings.
+
+## External Access (Synology-DSM)
+
+This describes how to access the container externally with a [Dynamic DNS](#ddns) and a [Reverse Proxy](#reverse-proxy). You have to modify some values like Hostname and Port.
+
+### DDNS
+
+- First Open the Control Panel
+- Select "External Access" and Tab "DDNS"
+
+### Reverse Proxy
+
+- First Open the Control Panel
+- Select "Login Portal" and Tab "Advanced"
+- Click on Button "Reverse Proxy" and "Create"
+
+#### General
+
+##### Source
+
+| Property               | Input/Selection         |
+| ---------------------- | ----------------------- |
+| Protocol               | HTTPS                   |
+| Hostname               | example.synology.me     |
+| Port                   | 35555                   |
+| Enable HSTS            | checked                 |
+| Access control profile | Not configured          |
+
+##### Destination
+
+| Property | Input/Selection |
+| -------- | --------------- |
+| Protocol | HTTP            |
+| Hostname | 192.168.xxx.xxx |
+| Port     | 80              |
+
+#### Custom Header
+
+| Header Name       | Value                      |
+| ----------------- | -------------------------- |
+| Upgrade           | $http_upgrade              |
+| Connection        | $connection_upgrade        |
+| X-Real-IP         | $remote_addr               |
+| X-Forwarded-For   | $proxy_add_x_forwarded_for |
+| Host              | $host                      |
+| X-Forwarded-Proto | $scheme                    |
+
+#### Advanced Settings
+
+| Property                                         | Input/Selection |
+| ------------------------------------------------ | --------------- |
+| Proxy connection timeout                         | 60              |
+| Proxy send timeout                               | 60              |
+| Proxy read timeout                               | 60              |
+| Proxy HTTP version                               | HTTP 1.1        |
+| Use the error page<br>sent back by target server | checked         |
